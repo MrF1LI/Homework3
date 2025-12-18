@@ -7,8 +7,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.homework3.fragments.ProductsFragment
+import com.example.homework3.fragments.SettingsFragment
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -16,11 +21,6 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var database: DatabaseReference
-    private val productList = mutableListOf<Product>()
-    private lateinit var adapter: ProductAdapter
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,46 +31,35 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        recyclerView = findViewById(R.id.recyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        val toolbar: MaterialToolbar = findViewById(R.id.topAppBar)
+        setSupportActionBar(toolbar)
 
-        adapter = ProductAdapter(productList) { product ->
-            Toast.makeText(
-                this,
-                "${product.name} - ${product.price} ₾",
-                Toast.LENGTH_SHORT
-            ).show()
+        val bottomNav: BottomNavigationView = findViewById(R.id.bottomNavigation)
+
+        if (savedInstanceState == null) {
+            openFragment(ProductsFragment())
         }
 
-        recyclerView.adapter = adapter
-
-        database = FirebaseDatabase.getInstance()
-            .getReference("products")
-
-        fetchProducts()
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_products -> {
+                    toolbar.title = "Products"
+                    openFragment(ProductsFragment())
+                    true
+                }
+                R.id.nav_settings -> {
+                    toolbar.title = "Settings"
+                    openFragment(SettingsFragment())
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
-    private fun fetchProducts() {
-        database.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                productList.clear()
-
-                for (data in snapshot.children) {
-                    val products = data.getValue(Product::class.java)
-                    Log.d("MainActivity", "Product: $products")
-                    products?.let { productList.add(it) }
-                }
-
-                adapter.notifyDataSetChanged()
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(
-                    this@MainActivity,
-                    "Error: ${error.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        })
+    private fun openFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
     }
 }
